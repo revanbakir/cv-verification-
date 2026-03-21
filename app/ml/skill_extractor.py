@@ -1,52 +1,50 @@
+# app/ml/skill_extractor.py
+import re
+
 class SkillExtractor:
-
     def __init__(self):
-
-        # Yetenekleri kategorize ederek tanımlıyoruz
-
-        self.ontology = {
-            "Programming Languages": [
-                "python", "c#", "javascript", "java", "sql", "html", "css", "typescript", "c++"
-            ],
-            "Web Frameworks": [
-                "fastapi", "django", "flask", "asp.net", "spring boot", "react", "vue", "angular", "node.js"
-            ],
-            "Data & Big Data": [
-                "pandas", "numpy", "matplotlib", "seaborn", "pyspark", "hadoop", "spark", "scikit-learn"
-            ],
-            "Machine Learning & AI": [
-                "tensorflow", "pytorch", "keras", "nlp", "nltk", "spacy", "xgboost", "neural networks", "opencv"
-            ],
-            "Database": [
-                "mongodb", "pymongo", "postgresql", "mysql", "sqlite", "redis", "elasticsearch", "oracle"
-            ],
-            "Business Intelligence": [
-                "sap analytics cloud", "sac", "power bi", "tableau", "excel"
-            ],
-            "Software Architecture & Design": [
-                "uml", "visual paradigm", "design patterns", "microservices", "rest api"
-            ],
-            "Testing & QA": [
-                "junit", "selenium", "pytest", "unit testing", "integration testing"
-            ],
-            "DevOps & Tools": [
-                "docker", "kubernetes", "git", "github", "aws", "amazon bedrock", "uvicorn", "pydantic", "requests", "dotenv"
-            ]
+        # Yetenekleri mantıksal gruplara ayırdık
+        self.SKILL_ONTOLOGY = {
+            "Programming Languages": {
+                "python": ["python", "py"],
+                "c#": ["c#", "csharp"],
+                "javascript": ["javascript", "js", "typescript", "ts"],
+                "java": ["java"]
+            },
+            "Frameworks & Tools": {
+                "fastapi": ["fastapi"],
+                "django": ["django"],
+                ".net": [".net", "dotnet", "asp.net", "entityframework"],
+                "react": ["react", "react.js"],
+            },
+            "Data & ML": {
+                "pandas": ["pandas", "pd"],
+                "scikit-learn": ["sklearn", "scikit-learn"],
+                "tensorflow": ["tensorflow", "tf"],
+                "pytorch": ["pytorch"]
+            },
+            "Database": {
+                "sql": ["sql", "postgresql", "mysql", "sqlserver", "sqlite"],
+                "mongodb": ["mongodb", "nosql"]
+            }
         }
 
-    def extract(self, raw_skills):
+    def extract(self, text_list: list):
+        categorized_results = {}
+        combined_text = " ".join(text_list).lower()
 
-        found_skills = {}
-
-        # Küçük harfe çevirerek karşılaştırıyoruz (Case-insensitivity)
-        raw_skills_lower = [s.lower() for s in raw_skills]
-
-        for category, keywords in self.ontology.items():
-            # Ham veri içinde bu kategoriden eşleşenleri bul
-            matches = [k for k in keywords if k in raw_skills_lower]
-
-            if matches:
-                # Ekranda daha güzel görünmesi için isimleri düzeltelim (capitalize)
-                found_skills[category] = [m.capitalize() for m in matches]
-
-        return found_skills
+        for category, skills_dict in self.SKILL_ONTOLOGY.items():
+            found_in_category = set()
+            
+            for skill_name, variants in skills_dict.items():
+                for variant in variants:
+                    # Nokta gibi özel karakterleri korumak için escape kullanıyoruz
+                    pattern = re.escape(variant.lower())
+                    if re.search(pattern, combined_text):
+                        found_in_category.add(skill_name)
+            
+            # Eğer bu kategoride bir şey bulunduysa sözlüğe ekle
+            if found_in_category:
+                categorized_results[category] = list(found_in_category)
+                
+        return categorized_results

@@ -1,6 +1,8 @@
+# app/core/github.analyzer
 import requests
-import base64
 import xml.etree.ElementTree as ET
+import re
+import json
 
 class GithubAnalyzer:
     def __init__(self, token: str = None):
@@ -8,8 +10,8 @@ class GithubAnalyzer:
         self.base_url = "https://api.github.com"
         self.headers = {"Authorization": f"Bearer {self.token}"} if token else {}
         # Analiz etmek istediğimiz kritik dosyalar
-        self.critical_files = ["requirements.txt", "package.json"]
-
+        self.critical_files = ["requirements.txt", "package.json", "dockerfile", ".env.example"]
+        
     def get_repos(self, username: str):
         url = f"{self.base_url}/users/{username}/repos"
         response = requests.get(url, headers=self.headers)
@@ -48,6 +50,7 @@ class GithubAnalyzer:
         """Dosya içeriğini okur ve yetenekleri ayıklar"""
         filename = file["name"].lower()
         skills = []
+        found = set()
         
         # Dosya içeriğini çek (download_url kullanımı rate limit'i daha az etkiler)
         try:
@@ -62,7 +65,6 @@ class GithubAnalyzer:
                         skills.append(pkg)
 
             elif filename == "package.json":
-                import json
                 data = json.loads(content)
                 deps = {**data.get("dependencies", {}), **data.get("devDependencies", {})}
                 skills.extend([d.lower() for d in deps.keys()])
@@ -72,6 +74,10 @@ class GithubAnalyzer:
                 for pkg in root.findall(".//PackageReference"):
                     skills.append(pkg.attrib.get("Include", "").lower())
                 skills.extend(["c#", ".net"])
+
+            elif filename.endswith('.md'):
+                words = re.findall(r'\b\w+\b', content.lower())
+                found.update(words)
 
         except Exception as e:
             print(f"Hata ({filename}): {e}")

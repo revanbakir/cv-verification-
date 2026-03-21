@@ -1,3 +1,4 @@
+# test_github.py
 import os
 from dotenv import load_dotenv
 from app.core.github_analyzer import GithubAnalyzer
@@ -11,7 +12,7 @@ def run_test():
 
     analyzer = GithubAnalyzer(token)
     extractor = SkillExtractor()
-    username = "umithavare" # Kendi kullanıcı adın
+    username = "ferihadkc" # Kendi kullanıcı adın
 
     print(f"--- {username} İçin Analiz Başlıyor ---")
     
@@ -38,12 +39,19 @@ def run_test():
             if found:
                 raw_git_skills.update(found)
 
+
+
     # 4. Ontoloji ile Temizle
     final_skills = extractor.extract(list(raw_git_skills))
 
     print("\n--- ANALİZ SONUCU ---")
-    for category, skills in final_skills.items():
-        print(f"{category}: {', '.join(skills)}")
+    if not final_skills:
+        print("Hiçbir yetenek eşleşmedi.")
+    else:
+        for category, skills in final_skills.items():
+            # Kategori bazlı şık bir çıktı
+            print(f"🔹 {category:25}: {', '.join(skills)}")
+    
         
 
 if __name__ == "__main__":
