@@ -1,132 +1,91 @@
-# app/core/cv_extractor.py
-
-import re
 import logging
+import anthropic
+import os
+import json
+import io  
+import docx
+import pdfplumber
+from app.core.skill_categorizer import SkillCategorizer
 
 logger = logging.getLogger(__name__)
 
-# SkillExtractor ile aynı ontoloji — tek kaynak of truth
-# İleride skills_config.yaml'a taşınabilir
-SKILL_ONTOLOGY = {
-    "Programming Languages": {
-        "python": ["python"],
-        "c#": ["c#", "csharp"],
-        "javascript": ["javascript", "js", "typescript", "ts"],
-        "java": ["java"],
-    },
-    "Frameworks & Tools": {
-        "fastapi": ["fastapi"],
-        "django": ["django"],
-        ".net": [".net", "dotnet", "asp.net"],
-        "react": ["react", "react.js"],
-        "docker": ["docker"],
-        "kubernetes": ["kubernetes", "k8s"],
-    },
-    "Cloud & DevOps": {
-        "aws": ["aws", "amazon web services"],
-        "azure": ["azure"],
-        "gcp": ["gcp", "google cloud"],
-        "ci/cd": ["ci/cd", "github actions", "jenkins"],
-    },
-    "Data & ML": {
-        "pandas": ["pandas"],
-        "scikit-learn": ["scikit-learn", "sklearn"],
-        "tensorflow": ["tensorflow"],
-        "pytorch": ["pytorch"],
-        "numpy": ["numpy"],
-        "pyspark": ["pyspark"],
-    },
-    "Database": {
-        "sql": ["sql", "postgresql", "mysql", "sqlite", "sqlserver"],
-        "mongodb": ["mongodb", "nosql"],
-        "redis": ["redis"],
-    },
-    
-    "AI & NLP": {                  
-    "nlp": ["nlp", "doğal dil işleme", "natural language processing"],
-    "transformers": ["transformers", "huggingface"],
-    }
-}
-
-
 class CVExtractor:
+    def __init__(self):
+        self.categorizer = SkillCategorizer()
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    def extract_skills(self, text: str) -> dict[str, list[str]]:
+        if not text or not text.strip():
+            return {}
+
+        # 1. ADIM: Claude ile temizleme
+        technical_terms = self._get_technical_terms_via_claude(text)
+        
+        # 2. ADIM: Kategorize etme
+        return self.categorizer.categorize_bulk(technical_terms)
+
+    def _get_technical_terms_via_claude(self, text: str) -> list[str]:
+        truncated_text = text[:8000] 
+
+        prompt = (
+           "Sen bir teknik işe alım uzmanısın. Aşağıdaki CV'den SADECE şunları çıkar:\n"
+           "1. Programlama dilleri (Python, C#, Java...)\n"
+           "2. Framework'ler (ASP.NET, FastAPI, React...)\n"
+           "3. Veritabanları (SQL Server, PostgreSQL, MongoDB...)\n"
+           "4. Cloud/DevOps araçları (AWS, Docker, Kubernetes...)\n"
+           "5. Tanınmış kütüphaneler (Entity Framework, Pandas...)\n\n"
+           "ALMA: DbContext, DTO, CRUD, async/await, dependency injection, "
+           "RESTful API, Web API gibi pattern/kavram/mimari terimlerini.\n"
+           "ALMA: Soft skill, şehir, tarih, eğitim bilgisi.\n"
+           "Sadece virgülle ayrılmış liste döndür, açıklama yapma.\n\n"
+           f"CV:\n{truncated_text}"
+        )
+
+        try:
+            # Model ismini güncelledim: claude-3-haiku-20240307 (en stabil hızlı model)
+            response = self.client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            content = response.content[0].text
+            terms = [t.strip().lower() for t in content.split(",") if len(t.strip()) > 1]
+            return list(set(terms))
+
+        except Exception as e:
+            logger.error(f"Claude extraction hatası: {e}")
+            return []
 
     def extract_text(self, file_bytes: bytes, filename: str = "") -> str:
-        """
-        Dosya tipine göre metin çıkarır.
-        - .pdf  → pdfplumber ile
-        - .docx → python-docx ile
-        - diğer → UTF-8 decode (test/düz metin için)
-        """
         ext = filename.lower().split(".")[-1] if filename else ""
 
         try:
             if ext == "pdf":
-                import pdfplumber, io
+                # io.BytesIO doğru kullanımı
                 with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-                    return "\n".join(
-                        page.extract_text() or "" for page in pdf.pages
-                    )
+                    return "\n".join(page.extract_text() or "" for page in pdf.pages)
 
             elif ext == "docx":
-                import docx, io
+                # io.BytesIO doğru kullanımı
                 doc = docx.Document(io.BytesIO(file_bytes))
                 return "\n".join(p.text for p in doc.paragraphs)
 
             else:
-                # Fallback: düz metin (test senaryoları için)
                 return file_bytes.decode("utf-8", errors="ignore")
 
         except Exception as e:
-            logger.error(f"Metin çıkarma hatası ({filename}): {e}", exc_info=True)
+            logger.error(f"Metin cikartma hatasi ({filename}): {e}")
             return ""
 
-    def extract_skills(self, text: str) -> dict:
-        """
-        Metinden skill çıkarır, SKILL_ONTOLOGY'e göre kategorize eder.
-
-        Dönen format (Verifier ile uyumlu):
-        {
-            "Programming Languages": ["python", "javascript"],
-            "Cloud & DevOps": ["aws", "docker"],
-            ...
-        }
-        """
-        if not text or not text.strip():
-            logger.warning("Boş metin geldi, skill çıkarılamıyor.")
-            return {}
-
-        text_lower = text.lower()
-        categorized: dict[str, list[str]] = {}
-
-        for category, skills_dict in SKILL_ONTOLOGY.items():
-            found_in_category = set()
-
-            for skill_name, variants in skills_dict.items():
-                for variant in variants:
-                    # Nokta içeren ifadeler (.net, ci/cd) için özel kontrol
-                    if any(c in variant for c in [".", "/"]):
-                        if variant in text_lower:
-                            found_in_category.add(skill_name)
-                    else:
-                        # Word boundary: "aws" → "drawstring"'de eşleşmesin
-                        pattern = r"\b" + re.escape(variant) + r"\b"
-                        if re.search(pattern, text_lower):
-                            found_in_category.add(skill_name)
-
-            if found_in_category:
-                categorized[category] = list(found_in_category)
-
-        return categorized
-
-
 if __name__ == "__main__":
-    extractor = CVExtractor()
-    text = "Python and FastAPI developer with AWS and Docker experience. Knows drawstring too."
-    skills = extractor.extract_skills(text)
+    from dotenv import load_dotenv
+    load_dotenv()
 
-    print("--- Çıkarılan Skill'ler ---")
+    extractor = CVExtractor()
+    test_text = "Python and FastAPI developer with AWS and Docker experience. Uses PostgreSQL and MongoDB."
+    skills = extractor.extract_skills(test_text)
+
+    print("--- Cikarilan Skill'ler ---")
     for category, found in skills.items():
         print(f"  {category:25}: {', '.join(found)}")
-
-    # Beklenen: aws eşleşmeli, drawstring eşleşmemeli
