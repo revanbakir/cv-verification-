@@ -2,6 +2,8 @@ import json
 import os
 import logging
 import anthropic
+from app.core.skill_categorizer import BASE_ONTOLOGY
+from app.core.github_analyzer import PACKAGE_NORMALIZE, LANGUAGE_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -224,54 +226,26 @@ class Verifier:
 
 
     def _extract_bonus(self, cv_skills_dict: dict, github_evidence: dict) -> list[str]:
-        # 1. CV'deki tüm yetenekleri küçük harfe çevirip bir kümede topla (hızlı karşılaştırma için)
+        
+        known_techs = (
+            set(BASE_ONTOLOGY.keys())
+            | set(PACKAGE_NORMALIZE.values())
+            | set(LANGUAGE_MAP.values())
+        )
+
         cv_set = {s.lower().strip() for cats in cv_skills_dict.values() for s in cats}
 
-        # 2. GitHub verisinden aday "bonus" yetenekleri belirle
-        candidates = [
+        return sorted ([
             skill for skill, src in github_evidence.items()
-            if skill not in cv_set  # CV'de halihazırda yoksa
-            and any(e in ["direct", "infra"] for e in src)  # Doğrudan veya altyapı kanıtı varsa
-            and not skill.startswith("http")  # Link değilse
-            and len(skill) > 2  # Çok kısa bir ifade değilse
-        ]
+            if skill not in cv_set
+            and skill in known_techs
+            and any(e in ["direct", "infra"] for e in src)
+            and not skill.startswith("http")
+            and len(skill) > 2
+        ])
 
-        # Eğer aday yoksa boş liste dön
-        if not candidates:
-            return []
 
-        try:
-            # 3. Claude API'ye bağlan ve "gereksiz" paketleri filtrele
-            client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-            resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=500,
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        "Sen bir teknik işe alım uzmanısın."
-                        "Aşağıdaki paket/teknoloji listesinden sadece bir yazılımcının CV'sinde "
-                        "bağımsız bir skill sayılması için şu kriterlerden birini karşılaması gerekir:\n"
-                        "- Tanınmış bir framework, kütüphane veya platform olması\n"
-                        "- Öğrenilmesi için zaman ve çaba gerektirmesi ve eğitiminin alınması gerekebileceği\n"
-                        "- İş ilanlarında aranıyor olması\n\n"
-                        "ALMA: Başka araçların çalışması için gereken alt bağımlılıklar, "
-                        "yardımcı paketler, congfig/env araçları, şablon motorları, "
-                        "HTTP alt katman kütüphaneleri - bunları kullanan geliştirici bile "
-                        "farkında oladan kullanır, CV'ye yazmaz.\n\n"
-                        "Sadece virgülle ayrılmış liste döndür, başına sonuna başka hiçbir şey yazma."
-                        f"{', '.join(candidates)}"
-                    )
-                }]
-            )
-        
-            # 4. Yanıtı temizle ve alfabetik sıralı liste olarak döndür
-            raw = resp.content[0].text.strip()
-            return sorted([s.strip().lower() for s in raw.split(",") if s.strip()])
-        
-        except Exception as e:
-            logger.error(f"Bonus extraction hatası: {e}")
-            return []
+
 
     
 

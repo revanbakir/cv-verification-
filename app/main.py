@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def index():
@@ -63,3 +63,25 @@ async def analyze(
         "github_found": len(github_evidence),
         "result":       result,
     }
+
+
+@app.post("/api/test/cv-parse")
+async def test_cv_parse(body: dict):
+    cv_extractor = CVExtractor()
+    return cv_extractor.extract_skills(body["text"])
+
+
+@app.post("/api/test/github")
+async def test_github(body: dict):
+    token = body.get("token") or os.getenv("GITHUB_TOKEN", "")
+    analyzer = GithubAnalyzer(token)
+    repos = analyzer.get_repos(body["username"])
+    if not repos:
+        return {"error": "Repo bulunamadı"}
+    recent = sorted(repos, key=lambda x: x["updated_at"], reverse=True)[:body.get("max_repos", 5)]
+    evidence = {}
+    for repo in recent:
+        for skill, srcs in analyzer.analyze_repo(repo).items():
+            existing = set(evidence.get(skill, []))
+            evidence[skill] = list(existing | set(srcs))
+    return evidence
