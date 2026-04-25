@@ -20,7 +20,7 @@ class CVExtractor:
 
         # 1. ADIM: Claude ile temizleme
         technical_terms = self._get_technical_terms_via_claude(text)
-        
+    
         # 2. ADIM: Kategorize etme
         return self.categorizer.categorize_bulk(technical_terms)
 
@@ -49,7 +49,11 @@ class CVExtractor:
                 messages=[{"role": "user", "content": prompt}]
             )
             
-            content = response.content[0].text
+            content = ""
+            for block in response.content:
+                if hasattr(block, "text"):
+                    content +=block.text
+                    
             terms = [t.strip().lower() for t in content.split(",") if len(t.strip()) > 1]
             return list(set(terms))
 

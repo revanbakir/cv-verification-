@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CV Verifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a1a1c;
+  --surface:#1c1c20;
+  --surface2: #2e2e35;
+  --border: rgba(62, 61, 1, 0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f6f3f1;
+  --muted: #a0a0b0;
+  --accent: #c8f060;
+  --accent-dim: rgba(200,240,96,0.12);
+  --accent-dim2: rgba(200,240,96,0.06);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.12);
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.1);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+}
+.header { margin-bottom: 2.5rem; animation: fadeUp 0.5s ease both; }
+.logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-icon svg { width: 16px; height: 16px; }
+h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+.tagline { font-size: 13px; color: var(--muted); }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 12px;
+  animation: fadeUp 0.5s ease both;
+}
+.card-label {
+  font-size: 11px; font-weight: 500; color: var(--muted);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px;
+}
+.upload-zone {
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 1.75rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--accent-dim2);
+}
+.upload-zone:hover, .upload-zone.has-file, .upload-zone.dragging {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.upload-zone.dragging { transform: scale(1.01); }
+.upload-icon {
+  width: 36px; height: 36px;
+  margin: 0 auto 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border2);
+}
+.upload-icon svg { width: 16px; height: 16px; stroke: var(--accent); }
+.upload-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.upload-sub { font-size: 12px; color: var(--muted); }
+#file-input { display: none; }
+.fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 90px;
+  gap: 10px;
+  margin-top: 12px;
+}
+.field-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: block; }
+input[type=text], input[type=number] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+input::placeholder { color: var(--muted); }
+input:focus { border-color: var(--border2); }
+.btn-primary {
+  width: 100%; margin-top: 14px; padding: 11px;
+  background: var(--accent); color: #0e0e10;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; font-family: inherit;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:active { transform: scale(0.99); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-secondary {
+  width: 100%; padding: 11px;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-family: inherit;
+  cursor: pointer; transition: all 0.15s; margin-top: 10px;
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--border2); }
+#loading { display: none; }
+.loading-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  text-align: center;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid var(--surface2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 1rem;
+}
+.loading-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.loading-sub { font-size: 12px; color: var(--muted); }
+.loading-steps { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.loading-step {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--muted);
+  padding: 8px 12px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.loading-step.active .step-dot { background: var(--accent); animation: pulse 1s infinite; }
+.loading-step.active { color: var(--text); border-color: var(--border2); }
+.loading-step.done .step-dot { background: var(--green); }
+.loading-step.done { color: var(--green); }
+#result { display: none; }
+.score-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.score-ring-wrap { flex-shrink: 0; position: relative; }
+.score-ring-wrap svg { transform: rotate(-90deg); display: block; }
+.score-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.score-num {
+  font-size: 22px; font-weight: 500;
+  font-family: 'DM Mono', monospace;
+  line-height: 1; color: var(--accent);
+}
+.score-lbl { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.score-info { flex: 1; }
+.score-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+.score-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat {
+  background: var(--surface2); border-radius: 8px;
+  padding: 8px 10px; border: 1px solid var(--border);
+}
+.stat-val { font-size: 18px; font-weight: 500; font-family: 'DM Mono', monospace; line-height: 1.2; }
+.stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.stat-val.g { color: var(--green); }
+.stat-val.a { color: var(--amber); }
+.detail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.25rem;
+}
+.tab {
+  font-size: 12px; padding: 12px 0; margin-right: 20px;
+  cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab-content { padding: 1rem 1.25rem; }
+.cat-header {
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 0 6px; margin-top: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.cat-header:first-child { margin-top: 0; }
+.skill-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.skill-row:last-child { border: none; }
+.skill-name { font-size: 13px; font-family: 'DM Mono', monospace; }
+.skill-right { display: flex; align-items: center; gap: 8px; }
+.badge { font-size: 10px; padding: 3px 9px; border-radius: 99px; font-weight: 500; }
+.badge-v { background: var(--green-dim); color: var(--green); }
+.badge-p { background: var(--amber-dim); color: var(--amber); }
+.badge-u { background: rgba(255,255,255,0.05); color: var(--muted); }
+.src-tag { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.bonus-intro { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.bonus-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 99px; font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  padding: 5px 12px; color: var(--text);
+  transition: border-color 0.15s;
+}
+.chip:hover { border-color: var(--border2); }
+.error-box {
+  background: var(--red-dim); border: 1px solid rgba(248,113,113,0.2);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 13px; color: var(--red); margin-top: 10px; display: none;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.result-appear { animation: fadeUp 0.4s ease both; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M3 8l3.5 3.5L13 4.5" stroke="#0e0e10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1>CV Verifier</h1>
+    </div>
+    <p class="tagline">CV'deki skill'leri GitHub aktivitesiyle doğrular</p>
+  </div>
+
+  <div id="form-section">
+    <div class="card">
+      <div class="card-label">CV Dosyası</div>
+      <div class="upload-zone" id="upload-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="onDragOver(event)"
+           ondragleave="onDragLeave(event)"
+           ondrop="onDrop(event)">
+        <div class="upload-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="M8 11V3M8 3L5 6M8 3l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="upload-title" id="upload-title">Dosya seç veya sürükle bırak</div>
+        <div class="upload-sub">PDF · DOCX</div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.docx" onchange="onFileSelect(this)"/>
+    </div>
+
+    <div class="card" style="animation-delay:0.05s">
+      <div class="card-label">GitHub</div>
+      <div class="fields-row">
+        <div>
+          <span class="field-label">Kullanıcı adı</span>
+          <input type="text" id="username" placeholder="octocat"/>
+        </div>
+        <div>
+          <span class="field-label">Token (opsiyonel)</span>
+          <input type="text" id="token" placeholder="ghp_..."/>
+        </div>
+        <div>
+          <span class="field-label">Max repo</span>
+          <input type="number" id="max-repos" value="10" min="1" max="50"/>
+        </div>
+      </div>
+      <button class="btn-primary" id="run-btn" onclick="runAnalysis()">Analizi Başlat</button>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+  </div>
+
+  <div id="loading">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div class="loading-title">Analiz yapılıyor</div>
+      <div class="loading-sub">GitHub repoları taranıyor, 1–2 dakika sürebilir</div>
+      <div class="loading-steps">
+        <div class="loading-step done" id="step-cv">
+          <span class="step-dot"></span> CV okundu, skill'ler çıkarıldı
+        </div>
+        <div class="loading-step active" id="step-gh">
+          <span class="step-dot"></span> GitHub repoları taranıyor...
+        </div>
+        <div class="loading-step" id="step-verify">
+          <span class="step-dot"></span> Doğrulama ve skorlama
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="result">
+    <div class="score-card result-appear">
+      <div class="score-ring-wrap">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+          <circle id="score-arc" cx="45" cy="45" r="38" fill="none" stroke="#c8f060" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+        </svg>
+        <div class="score-center">
+          <div class="score-num" id="score-num">0%</div>
+          <div class="score-lbl">SKOR</div>
+        </div>
+      </div>
+      <div class="score-info">
+        <div class="score-title">Doğrulama Skoru</div>
+        <div class="score-sub" id="score-sub">—</div>
+        <div class="stat-row">
+          <div class="stat"><div class="stat-val" id="m-total">0</div><div class="stat-lbl">Toplam</div></div>
+          <div class="stat"><div class="stat-val g" id="m-verified">0</div><div class="stat-lbl">Doğrulandı</div></div>
+          <div class="stat"><div class="stat-val a" id="m-partial">0</div><div class="stat-lbl">Kısmi</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card result-appear" style="animation-delay:0.07s">
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchTab(this,'detail')">Detaylı Rapor</div>
+        <div class="tab" onclick="switchTab(this,'bonus')">Bonus Skill'ler</div>
+      </div>
+      <div class="tab-content">
+        <div id="detail-content"></div>
+        <div id="bonus-content" style="display:none"></div>
+      </div>
+    </div>
+
+    <button class="btn-secondary" onclick="resetForm()">← Yeni Analiz</button>
+  </div>
+
+</div>
+<script>
+function onFileSelect(input) {
+  if (input.files[0]) setFile(input.files[0]);
+}
+function setFile(file) {
+  document.getElementById('upload-zone').classList.add('has-file');
+  document.getElementById('upload-title').textContent = file.name;
+}
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('dragging');
+}
+function onDragLeave() {
+  document.getElementById('upload-zone').classList.remove('dragging');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('dragging');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('file-input').files = dt.files;
+    setFile(file);
+  }
+}
+async function runAnalysis() {
+  const file     = document.getElementById('file-input').files[0];
+  const username = document.getElementById('username').value.trim();
+  const token    = document.getElementById('token').value.trim();
+  const maxRepos = document.getElementById('max-repos').value;
+  if (!file)     return showError('CV dosyası seçmelisin.');
+  if (!username) return showError('GitHub kullanıcı adı gerekli.');
+  hideError();
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result').style.display  = 'none';
+  setTimeout(() => {
+    document.getElementById('step-gh').className = 'loading-step done';
+    document.getElementById('step-verify').className = 'loading-step active';
+  }, 4000);
+  const fd = new FormData();
+  fd.append('cv_file', file);
+  fd.append('github_username', username);
+  fd.append('github_token', token);
+  fd.append('max_repos', maxRepos);
+  try {
+    const res  = await fetch('/api/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    if (data.error) {
+      document.getElementById('form-section').style.display = 'block';
+      showError(data.error);
+      return;
+    }
+    renderResult(data);
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('form-section').style.display = 'block';
+    showError('Sunucuya ulaşılamadı. FastAPI çalışıyor mu?');
+  }
+}
+function renderResult(data) {
+  const r = data.result, s = r.summary;
+  const score = Math.round(r.overall_verification_score);
+  const arc = document.getElementById('score-arc');
+  arc.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)';
+  setTimeout(() => { arc.style.strokeDashoffset = 238.76 - (score / 100) * 238.76; }, 100);
+  document.getElementById('score-num').textContent = score + '%';
+  document.getElementById('score-sub').textContent =
+    `${s.total_skills_claimed} skill · ${data.github_found} teknoloji GitHub'da bulundu`;
+  document.getElementById('m-total').textContent    = s.total_skills_claimed;
+  document.getElementById('m-verified').textContent = s.verified_count;
+  document.getElementById('m-partial').textContent  = s.partially_verified_count;
+  let html = '';
+  for (const [cat, items] of Object.entries(r.detailed_report)) {
+    html += `<div class="cat-header">${cat}</div>`;
+    for (const sk of items) {
+      const bc = sk.status === 'verified' ? 'badge-v' : sk.status === 'partially_verified' ? 'badge-p' : 'badge-u';
+      const bl = sk.status === 'verified' ? 'verified' : sk.status === 'partially_verified' ? 'partial' : 'unverified';
+      html += `<div class="skill-row">
+        <span class="skill-name">${sk.skill}</span>
+        <span class="skill-right">
+          <span class="src-tag">${sk.sources.join(' · ')}</span>
+          <span class="badge ${bc}">${bl}</span>
+        </span>
+      </div>`;
+    }
+  }
+  document.getElementById('detail-content').innerHTML = html;
+  const bonus = s.bonus_skills || [];
+  document.getElementById('bonus-content').innerHTML = bonus.length
+    ? `<p class="bonus-intro">GitHub'da kanıtlandı ama CV'de eksik:</p>
+       <div class="bonus-chips">${bonus.map(b => `<span class="chip">${b}</span>`).join('')}</div>`
+    : `<p class="bonus-intro">Bonus skill bulunamadı.</p>`;
+  document.getElementById('result').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('detail-content').style.display = tab === 'detail' ? 'block' : 'none';
+  document.getElementById('bonus-content').style.display  = tab === 'bonus'  ? 'block' : 'none';
+}
+function resetForm() {
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('form-section').style.display = 'block';
+  document.getElementById('step-cv').className = 'loading-step done';
+  document.getElementById('step-gh').className = 'loading-step active';
+  document.getElementById('step-verify').className = 'loading-step';
+  document.getElementById('file-input').value = '';
+  document.getElementById('upload-zone').classList.remove('has-file');
+  document.getElementById('upload-title').textContent = 'Dosya seç veya sürükle bırak';
+  document.getElementById('score-arc').style.strokeDashoffset = '238.76';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function showError(msg) {
+  const b = document.getElementById('error-box');
+  b.textContent = msg; b.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('error-box').style.display = 'none';
+}
+</script>
+</body>
+</html>

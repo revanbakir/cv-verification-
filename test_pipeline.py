@@ -1,4 +1,3 @@
-# test_pipeline.py
 import os
 from dotenv import load_dotenv
 from app.core.cv_extractor import CVExtractor
@@ -7,91 +6,109 @@ from app.core.verifier import Verifier
 
 load_dotenv()
 
-CV_PATH = "revan_cv_turkce.pdf"
-GITHUB_USERNAME = "revanbakir"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+CV_PATH        = "CV.pdf"
+GITHUB_USERNAME = "ferihadkc"
+GITHUB_TOKEN   = os.getenv("GITHUB_TOKEN")
+MAX_REPOS      = 10   # en güncel kaç repo taransın
+
 
 def run_pipeline():
-    print("="*55)
-    print("          CV - Github Doğrulama Pipeline Testi")
-    print("="*55)
+    print("=" * 55)
+    print("     CV - Github Doğrulama Pipeline Testi")
+    print("=" * 55)
 
-    # 1 - CV
+    # ----------------------------------------------------------------
+    # 1. CV'den skill çıkar
+    # ----------------------------------------------------------------
     print("\n[1/4] CV Okunuyor...")
-    cv_extractor = CVExtractor()
 
+    cv_extractor = CVExtractor()
     with open(CV_PATH, "rb") as f:
         file_bytes = f.read()
 
-    text = cv_extractor.extract_text(file_bytes, filename=CV_PATH)
+    text      = cv_extractor.extract_text(file_bytes, filename=CV_PATH)
     cv_skills = cv_extractor.extract_skills(text)
 
     if not cv_skills:
-        print("CV den skill çıkarılamadı.")
+        print("  HATA: CV'den skill çıkarılamadı.")
         return
 
-    print("CV den çıkarılan skiller:")
+    print("  Çıkarılan skill'ler:")
     for category, skills in cv_skills.items():
-        print(f"{category:25}: {', '.join(skills)}")
+        print(f"    {category:<25}: {', '.join(skills)}")
 
-    # 2 - GitHub
+    # ----------------------------------------------------------------
+    # 2. GitHub repo'larını tara, evidence topla
+    # ----------------------------------------------------------------
     print(f"\n[2/4] Github analizi ({GITHUB_USERNAME})")
 
+    if not GITHUB_TOKEN:
+        raise ValueError("GITHUB_TOKEN bulunamadı. .env dosyanı kontrol et.")
+
+
     analyzer = GithubAnalyzer(GITHUB_TOKEN)
-    repos = analyzer.get_repos(GITHUB_USERNAME)
+    repos    = analyzer.get_repos(GITHUB_USERNAME)
 
     if not repos:
-        print("Repo bulunamadı.")
+        print("  HATA: Repo bulunamadı. Token veya kullanıcı adını kontrol et.")
         return
 
-    github_evidence = {}  # 🔥 EN ÖNEMLİ SATIR
+    # En son güncellenen MAX_REPOS repo'yu al
+    recent_repos   = sorted(repos, key=lambda x: x["updated_at"], reverse=True)[:MAX_REPOS]
+    github_evidence: dict[str, list[str]] = {}
 
-    sorted_repos = sorted(repos, key=lambda x: x["updated_at"], reverse=True)[:10]
+    for repo in recent_repos:
+        print(f"  -> {repo['name']}")
 
-    for repo in sorted_repos:
-        print(f"   -> {repo['name']}")
+        # analyze_repo tek çağrıda tüm dosyaları tarar ve evidence döner
+        repo_evidence = analyzer.analyze_repo(repo)
 
-        files = analyzer.get_repo_contents_recursive(
-            repo["owner"]["login"],
-            repo["name"],
-            max_depth=2
-        )
+        # Repo evidence'ını genel evidence dict'e birleştir
+        for skill, evidences in repo_evidence.items():
+            existing               = set(github_evidence.get(skill, []))
+            github_evidence[skill] = list(existing | set(evidences))
 
-        for file in files:
-            found = analyzer.parse_file_by_type(file)
-
-            if found:
-                for skill, evidences in found.items():
-
-                    if skill not in github_evidence:
-                        github_evidence[skill] = []
-
-                    github_evidence[skill] = list(set(github_evidence[skill] + evidences))
-
-    print("\nGithub Evidence:")
+    print(f"\n  Toplam bulunan teknoloji: {len(github_evidence)}")
+    print("  Github Evidence:")
     for skill, ev in github_evidence.items():
-        print(f"{skill:20} -> {ev}")
+        print(f"    {skill:<30} -> {ev}")
 
-    # 3 - Doğrulama
-    print("\n[3/4] Doğrulama")
+    # ----------------------------------------------------------------
+    # 3. CV skill'lerini GitHub kanıtıyla doğrula
+    # ----------------------------------------------------------------
+    print("\n[3/4] Doğrulama yapılıyor...")
 
     verifier = Verifier()
-    result = verifier.verify(cv_skills, github_evidence)
+    result   = verifier.verify(cv_skills, github_evidence)
 
-    # 4 - Sonuç
+    # ----------------------------------------------------------------
+    # 4. Sonuçları yazdır
+    # ----------------------------------------------------------------
     print("\n[4/4] Sonuçlar")
-    print("="*55)
+    print("=" * 55)
 
-    print(f"Score: %{result['overall_verification_score']}")
-    print(f"Toplam Skill: {result['summary']['total_skills_claimed']}")
-    print(f"Verified: {result['summary']['verified_count']}")
-    print(f"Bonus: {', '.join(result['summary']['bonus_skills']) or 'Yok'}")
+    summary = result["summary"]
+    print(f"  Genel Score         : %{result['overall_verification_score']}")
+    print(f"  Toplam Skill        : {summary['total_skills_claimed']}")
+    print(f"  Verified            : {summary['verified_count']}")
+    print(f"  Partially Verified  : {summary.get('partially_verified_count', 0)}")
+    print(f"  Unverified          : {summary['total_skills_claimed'] - summary['verified_count'] - summary.get('partially_verified_count', 0)}")
 
-    print("\nDetay:")
+    bonus = summary["bonus_skills"]
+    print(f"\n  Bonus Skill'ler ({len(bonus)} adet):")
+    if bonus:
+        for b in bonus:
+            print(f"    + {b}")
+    else:
+        print("    Yok")
+
+    print("\n  Detaylı Rapor:")
     for category, items in result["detailed_report"].items():
-        print(f"\n{category}")
+        print(f"\n  [{category}]")
         for s in items:
-            print(f"  - {s['skill']} -> {s['status']} ({s['confidence']})")
+            icon = "✓" if s["status"] == "verified" else ("~" if s["status"] == "partially_verified" else "✗")
+            print(f"    {icon} {s['skill']:<25} {s['status']:<22} (confidence: {s['confidence']})")
+
 
 if __name__ == "__main__":
     run_pipeline()
