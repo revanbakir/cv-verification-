@@ -28,7 +28,6 @@ Technologies
 
 -Python
 -FastAPI
--Machine Learning (scikit-learn / custom models)
 -LLM APIs (Anthropic)
 
 Installation
