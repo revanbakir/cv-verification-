@@ -1,4 +1,4 @@
-CV Verification With GitHub
+## CV Verification With GitHub
 
 
 
@@ -6,7 +6,7 @@ CV Verification is a backend service developed to validate and analyze the skill
 
 ---------------------------------------------------------------
 
-Purpose
+## Purpose
 
 The goal of this project is to:
 
@@ -15,7 +15,7 @@ The goal of this project is to:
 -Check consistency between GitHub activity and the information provided in the CV
 -Make recruitment processes more data-driven
 
-Features
+## Features
 
 -CV parsing (PDF and DOCX support)
 -Skill extraction (LLM-based)
@@ -24,13 +24,13 @@ Features
 -Machine learning-based classification
 -RESTful API (FastAPI)
 
-Technologies
+## Technologies
 
 -Python
 -FastAPI
 -LLM APIs (Anthropic)
 
-Installation
+## Installation
 
 1. Clone this repository:
 git clone https://github.com/your-username/cv-verification.git
