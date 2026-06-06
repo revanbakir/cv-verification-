@@ -11,8 +11,11 @@ CV Verification is a backend service developed to validate and analyze the skill
 The goal of this project is to:
 
 -Analyze the accuracy of the skills listed in a CV
+
 -Evaluate a candidate’s real technical competencies more objectively
+
 -Check consistency between GitHub activity and the information provided in the CV
+
 -Make recruitment processes more data-driven
 
 ## Features
