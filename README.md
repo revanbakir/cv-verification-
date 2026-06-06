@@ -48,5 +48,5 @@ Create a .env file and fill it as follows:
 ANTHROPIC_API_KEY=your_key
 
 Running The Application
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 
