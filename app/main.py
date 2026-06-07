@@ -86,3 +86,8 @@ async def test_github(body: dict):
             existing = set(evidence.get(skill, []))
             evidence[skill] = list(existing | set(srcs))
     return evidence
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
