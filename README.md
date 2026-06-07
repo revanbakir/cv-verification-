@@ -43,26 +43,26 @@ The goal of this project is to:
 ## Installation
 
 1. Clone this repository:
-git clone https://github.com/your-username/cv-verification.git
-cd cv-verification
+   git clone https://github.com/your-username/cv-verification.git
+   cd cv-verification
 
 2. Create and activate a virtual environment:
    
-python -m venv .venv
+   python -m venv .venv
 
-source .venv/bin/activate  # For Windows: .venv\\Scripts\\activate
+   source .venv/bin/activate  # For Windows: .venv\\Scripts\\activate
 
 4. Install dependencies:
    
-pip install -r requirements.txt
+   pip install -r requirements.txt
 
 6. Set up environment variables:
    
-Create a .env file and fill it as follows:
+   Create a .env file and fill it as follows:
 
-ANTHROPIC_API_KEY=your_key
+   ANTHROPIC_API_KEY=your_key
 
-Running The Application
+   Running The Application
 
-uvicorn app.main:app --reload
+   uvicorn app.main:app --reload
 
