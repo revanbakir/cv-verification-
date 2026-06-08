@@ -7,10 +7,15 @@ from app.core.github_analyzer import GithubAnalyzer
 from app.core.verifier import Verifier
 import os
 from dotenv import load_dotenv
+from supabase import create_client
 
 load_dotenv()
 
 app = FastAPI()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,6 +63,13 @@ async def analyze(
 
     verifier = Verifier()
     result   = verifier.verify(cv_skills, github_evidence)
+
+    supabase.table("cv_results").insert({
+        "filename": filename,
+        "extracted_skills": ", ".join(cv_skills),
+        "github_username": github_username,
+        "match_score": result.get("match_score", 0.0)
+    }).execute()
 
     return {
         "cv_skills":    cv_skills,
