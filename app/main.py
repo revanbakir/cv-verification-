@@ -6,6 +6,7 @@ from app.core.cv_extractor import CVExtractor
 from app.core.github_analyzer import GithubAnalyzer
 from app.core.verifier import Verifier
 import os
+import json
 from dotenv import load_dotenv
 from supabase import create_client
 
@@ -16,6 +17,8 @@ app = FastAPI()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+cv_extractor = CVExtractor()
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,7 +44,6 @@ async def analyze(
     file_bytes = await cv_file.read()
     filename   = cv_file.filename or "file"
 
-    cv_extractor = CVExtractor()
     text      = cv_extractor.extract_text(file_bytes, filename=filename)
     cv_skills = cv_extractor.extract_skills(text)
 
@@ -66,7 +68,7 @@ async def analyze(
 
     supabase.table("cv_results").insert({
         "filename": filename,
-        "extracted_skills": ", ".join(cv_skills),
+        "extracted_skills": json.dumps(cv_skills),
         "github_username": github_username,
         "match_score": result.get("match_score", 0.0)
     }).execute()
@@ -80,7 +82,6 @@ async def analyze(
 
 @app.post("/api/test/cv-parse")
 async def test_cv_parse(body: dict):
-    cv_extractor = CVExtractor()
     return cv_extractor.extract_skills(body["text"])
 
 
@@ -103,3 +104,20 @@ async def test_github(body: dict):
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/test-supabase")
+def test_supabase():
+    result = supabase.table("cv_results").select("*").execute()
+    return result.data
+
+
+@app.get("/test-insert")
+def test_insert():
+    result = supabase.table("cv_results").insert({
+        "filename": "test.pdf",
+        "extracted_skills": "Python, FastAPI",
+        "github_username": "testuser",
+        "match_score": 0.85
+    }).execute()
+    return result.data
