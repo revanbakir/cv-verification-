@@ -446,6 +446,7 @@ async function runAnalysis() {
     }
     renderResult(data);
   } catch(e) {
+    console.error('Hata detayı:', e);
     document.getElementById('loading').style.display = 'none';
     document.getElementById('form-section').style.display = 'block';
     showError('Sunucuya ulaşılamadı. FastAPI çalışıyor mu?');

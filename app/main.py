@@ -67,7 +67,7 @@ async def analyze(
     result   = verifier.verify(cv_skills, github_evidence)
 
     supabase.table("cv_results").insert({
-        "filename": filename,
+        "file_name": filename,
         "extracted_skills": json.dumps(cv_skills),
         "github_username": github_username,
         "match_score": result.get("match_score", 0.0)
