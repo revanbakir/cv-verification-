@@ -8,22 +8,25 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #1a1a1c;
-  --surface:#1c1c20;
-  --surface2: #2e2e35;
-  --border: rgba(62, 61, 1, 0.07);
-  --border2: rgba(255,255,255,0.13);
-  --text: #f6f3f1;
-  --muted: #a0a0b0;
-  --accent: #c8f060;
-  --accent-dim: rgba(200,240,96,0.12);
-  --accent-dim2: rgba(200,240,96,0.06);
-  --green: #4ade80;
-  --green-dim: rgba(74,222,128,0.12);
-  --amber: #f59e0b;
-  --amber-dim: rgba(245,158,11,0.12);
+  /* Renk Paleti: Canlı Koyu Lacivert ve Modern Mavi Tonları */
+  --bg: #0a1128;               /* Derin canlı koyu lacivert arka plan */
+  --surface: #111f42;          /* Kartların arka planı */
+  --surface2: #1c2d5a;         /* Inputlar ve iç elementlerin rengi */
+  --border: rgba(30, 64, 175, 0.2); 
+  --border2: rgba(255, 255, 255, 0.15);
+  --text: #f1f5f9;             /* Temiz beyaz/gri yazı rengi */
+  --muted: #94a3b8;            /* Sönük metin renkleri */
+  --accent: #38bdf8;           /* Canlı mavi/sky blue vurgu rengi */
+  --accent-dim: rgba(56, 189, 248, 0.12);
+  --accent-dim2: rgba(56, 189, 248, 0.04);
+  
+  /* Durum Renkleri */
+  --green: #34d399;
+  --green-dim: rgba(52, 211, 153, 0.12);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251, 191, 36, 0.12);
   --red: #f87171;
-  --red-dim: rgba(248,113,113,0.1);
+  --red-dim: rgba(248, 113, 113, 0.1);
   --radius: 14px;
   --radius-sm: 8px;
 }
@@ -39,9 +42,10 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
+  /* Kılavuz çizgileri lacivert tona uyarlandı */
   background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    linear-gradient(rgba(56, 189, 248, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.02) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
@@ -102,10 +106,12 @@ h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
 .upload-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
 .upload-sub { font-size: 12px; color: var(--muted); }
 #file-input { display: none; }
+
+/* Token kalktığı için burayı 3 sütundan 2 sütuna çektik */
 .fields-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 90px;
-  gap: 10px;
+  grid-template-columns: 1fr 100px;
+  gap: 12px;
   margin-top: 12px;
 }
 .field-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: block; }
@@ -122,10 +128,10 @@ input[type=text], input[type=number] {
   transition: border-color 0.15s;
 }
 input::placeholder { color: var(--muted); }
-input:focus { border-color: var(--border2); }
+input:focus { border-color: var(--accent); } /* Odaklanınca canlı mavi border */
 .btn-primary {
   width: 100%; margin-top: 14px; padding: 11px;
-  background: var(--accent); color: #0e0e10;
+  background: var(--accent); color: #0a1128;
   border: none; border-radius: var(--radius-sm);
   font-size: 13px; font-weight: 500; font-family: inherit;
   cursor: pointer; transition: opacity 0.15s, transform 0.1s;
@@ -281,7 +287,7 @@ input:focus { border-color: var(--border2); }
     <div class="logo-row">
       <div class="logo-icon">
         <svg viewBox="0 0 16 16" fill="none">
-          <path d="M3 8l3.5 3.5L13 4.5" stroke="#0e0e10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 8l3.5 3.5L13 4.5" stroke="#0a1128" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <h1>CV Verifier</h1>
@@ -315,10 +321,6 @@ input:focus { border-color: var(--border2); }
         <div>
           <span class="field-label">Kullanıcı adı</span>
           <input type="text" id="username" placeholder="octocat"/>
-        </div>
-        <div>
-          <span class="field-label">Token (opsiyonel)</span>
-          <input type="text" id="token" placeholder="ghp_..."/>
         </div>
         <div>
           <span class="field-label">Max repo</span>
@@ -355,7 +357,7 @@ input:focus { border-color: var(--border2); }
       <div class="score-ring-wrap">
         <svg width="90" height="90" viewBox="0 0 90 90">
           <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
-          <circle id="score-arc" cx="45" cy="45" r="38" fill="none" stroke="#c8f060" stroke-width="6"
+          <circle id="score-arc" cx="45" cy="45" r="38" fill="none" stroke="#38bdf8" stroke-width="6"
             stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
         </svg>
         <div class="score-center">
@@ -389,6 +391,7 @@ input:focus { border-color: var(--border2); }
   </div>
 
 </div>
+
 <script>
 function onFileSelect(input) {
   if (input.files[0]) setFile(input.files[0]);
@@ -418,27 +421,31 @@ function onDrop(e) {
 async function runAnalysis() {
   const file     = document.getElementById('file-input').files[0];
   const username = document.getElementById('username').value.trim();
-  const token    = document.getElementById('token').value.trim();
   const maxRepos = document.getElementById('max-repos').value;
+  
   if (!file)     return showError('CV dosyası seçmelisin.');
   if (!username) return showError('GitHub kullanıcı adı gerekli.');
+  
   hideError();
   document.getElementById('form-section').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
   document.getElementById('result').style.display  = 'none';
+  
   setTimeout(() => {
     document.getElementById('step-gh').className = 'loading-step done';
     document.getElementById('step-verify').className = 'loading-step active';
   }, 4000);
+
   const fd = new FormData();
   fd.append('cv_file', file);
   fd.append('github_username', username);
-  fd.append('github_token', token);
   fd.append('max_repos', maxRepos);
+
   try {
     const res  = await fetch('/api/analyze', { method: 'POST', body: fd });
     const data = await res.json();
     document.getElementById('loading').style.display = 'none';
+    
     if (data.error) {
       document.getElementById('form-section').style.display = 'block';
       showError(data.error);
@@ -456,14 +463,17 @@ function renderResult(data) {
   const r = data.result, s = r.summary;
   const score = Math.round(r.overall_verification_score);
   const arc = document.getElementById('score-arc');
+  
   arc.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)';
   setTimeout(() => { arc.style.strokeDashoffset = 238.76 - (score / 100) * 238.76; }, 100);
+  
   document.getElementById('score-num').textContent = score + '%';
   document.getElementById('score-sub').textContent =
-    `${s.total_skills_claimed} skill · ${data.github_found} teknoloji GitHub'da bulundu`;
+    `${s.total_skills_claimed} skill · ${data.github_found || 0} teknoloji GitHub'da bulundu`;
   document.getElementById('m-total').textContent    = s.total_skills_claimed;
   document.getElementById('m-verified').textContent = s.verified_count;
   document.getElementById('m-partial').textContent  = s.partially_verified_count;
+  
   let html = '';
   for (const [cat, items] of Object.entries(r.detailed_report)) {
     html += `<div class="cat-header">${cat}</div>`;
@@ -473,18 +483,20 @@ function renderResult(data) {
       html += `<div class="skill-row">
         <span class="skill-name">${sk.skill}</span>
         <span class="skill-right">
-          <span class="src-tag">${sk.sources.join(' · ')}</span>
+          <span class="src-tag">${sk.sources ? sk.sources.join(' · ') : ''}</span>
           <span class="badge ${bc}">${bl}</span>
         </span>
       </div>`;
     }
   }
   document.getElementById('detail-content').innerHTML = html;
+  
   const bonus = s.bonus_skills || [];
   document.getElementById('bonus-content').innerHTML = bonus.length
     ? `<p class="bonus-intro">GitHub'da kanıtlandı ama CV'de eksik:</p>
        <div class="bonus-chips">${bonus.map(b => `<span class="chip">${b}</span>`).join('')}</div>`
     : `<p class="bonus-intro">Bonus skill bulunamadı.</p>`;
+    
   document.getElementById('result').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
